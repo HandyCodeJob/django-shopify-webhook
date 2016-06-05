@@ -16,6 +16,7 @@ webhook_received = WebhookSignal()
 
 
 # Define topic-specific signals.
+metafields_update = WebhookSignal()
 orders_create = WebhookSignal()
 orders_delete = WebhookSignal()
 orders_updated = WebhookSignal()

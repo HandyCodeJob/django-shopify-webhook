@@ -25,6 +25,7 @@ WEBHOOK_TOPICS = [
     'disputes/update',
     'fulfillments/create',
     'fulfillments/update',
+    'metafields/update',
     'orders/create',
     'orders/delete',
     'orders/updated',

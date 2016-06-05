@@ -19,30 +19,53 @@ def webhook(f):
     @wraps(f)
     def wrapper(request, *args, **kwargs):
         # Ensure the request is a POST request.
-        if request.method != 'POST':
+        if request.method == 'OPTIONS':
+            response = HttpResponse()
+            response['Access-Control-Allow-Origin'] = '*'
+            response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+            response['Access-Control-Max-Age'] = 1000
+            # note that '*' is not valid for Access-Control-Allow-Headers
+            response['Access-Control-Allow-Headers'] = (
+                'Origin, Content-Type, Accept, X-Shopify-Topic, '
+                'X-Shopify-Shop-Domain, X-Shopify-Hmac-Sha256,'
+                'X-Shopify-*-Id')
+            return response
+        elif request.method != 'POST':
+            print("Bad method %s" % request.method)
             return HttpResponseMethodNotAllowed()
-        
+
         # Try to get required headers and decode the body of the request.
+        topic = request.META.get('HTTP_X_SHOPIFY_TOPIC', None)
+        domain = request.META.get('HTTP_X_SHOPIFY_SHOP_DOMAIN', None)
+        hmac = request.META.get('HTTP_X_SHOPIFY_HMAC_SHA256', None)
+
+        # Check the headers
+        if not topic:
+            return HttpResponseBadRequest('No topic header')
+        if not domain:
+            return HttpResponseBadRequest('No domain header')
         try:
-            topic   = request.META['HTTP_X_SHOPIFY_TOPIC']
-            domain  = request.META['HTTP_X_SHOPIFY_SHOP_DOMAIN']
-            hmac    = request.META['HTTP_X_SHOPIFY_HMAC_SHA256'] if 'HTTP_X_SHOPIFY_HMAC_SHA256' in request.META else None
-            data    = json.loads(request.body.decode('utf-8'))
-        except (KeyError, ValueError) as e:
-            return HttpResponseBadRequest()
+            data = json.loads(request.body.decode('utf-8'))
+        except ValueError as e:
+            print("Bad json %s" % e)
+            return HttpResponseBadRequest("Bad json")
 
         # Verify the domain.
         if not domain_is_valid(domain):
-            return HttpResponseBadRequest()
+            return HttpResponseBadRequest("Bad domain header")
 
         # Verify the HMAC.
-        if not hmac_is_valid(request.body, settings.SHOPIFY_APP_API_SECRET, hmac):
-            return HttpResponseForbidden()
+        if 'metafield' not in topic and not hmac_is_valid(request.body,
+                                                          settings.SHOPIFY_APP_API_SECRET,
+                                                          hmac):
+            # We only have to do that check if we are not using a metafield
+            print("Bad HMAC")
+            return HttpResponseForbidden("Bad HMAC header")
 
         # Otherwise, set properties on the request object and return.
-        request.webhook_topic   = topic
-        request.webhook_data    = data
-        request.webhook_domain  = domain
+        request.webhook_topic = topic
+        request.webhook_data = data
+        request.webhook_domain = domain
         return f(request, *args, **kwargs)
 
     return wrapper

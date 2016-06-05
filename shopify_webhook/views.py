@@ -7,6 +7,8 @@ from django.conf import settings
 from .decorators import webhook, app_proxy
 from .helpers import get_signal_name_for_topic
 from . import signals
+import logging
+log = logging.getLogger(__name__)
 
 
 class WebhookView(View):
@@ -35,7 +37,7 @@ class WebhookView(View):
             signals.webhook_received.send(self, domain = request.webhook_domain, topic = request.webhook_topic, data = request.webhook_data)
             getattr(signals, signal_name).send(self, domain = request.webhook_domain, topic = request.webhook_topic, data = request.webhook_data)
         except AttributeError as e:
-            print("Processing error", e)
+            info.warning("Processing error", e)
             return HttpResponseBadRequest("Could not process webhook")
 
         # All good, return a 200.

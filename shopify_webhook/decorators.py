@@ -5,6 +5,8 @@ from django.http import HttpResponseBadRequest, HttpResponseForbidden, HttpRespo
 from django.conf import settings
 
 from .helpers import domain_is_valid, hmac_is_valid, proxy_signature_is_valid
+import logging
+log = logging.getLogger(__name__)
 
 
 class HttpResponseMethodNotAllowed(HttpResponse):
@@ -31,7 +33,7 @@ def webhook(f):
                 'X-Shopify-*-Id')
             return response
         elif request.method != 'POST':
-            print("Bad method %s" % request.method)
+            log.debug("Bad method %s" % request.method)
             return HttpResponseMethodNotAllowed()
 
         # Try to get required headers and decode the body of the request.
@@ -47,7 +49,7 @@ def webhook(f):
         try:
             data = json.loads(request.body.decode('utf-8'))
         except ValueError as e:
-            print("Bad json %s" % e)
+            log.debug("Bad json %s" % e)
             return HttpResponseBadRequest("Bad json")
 
         # Verify the domain.
@@ -59,7 +61,7 @@ def webhook(f):
                                                           settings.SHOPIFY_APP_API_SECRET,
                                                           hmac):
             # We only have to do that check if we are not using a metafield
-            print("Bad HMAC")
+            log.debug("Bad HMAC")
             return HttpResponseForbidden("Bad HMAC header")
 
         # Otherwise, set properties on the request object and return.

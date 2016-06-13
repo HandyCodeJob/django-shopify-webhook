@@ -23,14 +23,15 @@ def webhook(f):
         # Ensure the request is a POST request.
         if request.method == 'OPTIONS':
             response = HttpResponse()
+            response['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
             response['Access-Control-Allow-Origin'] = '*'
             response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
             response['Access-Control-Max-Age'] = 1000
             # note that '*' is not valid for Access-Control-Allow-Headers
             response['Access-Control-Allow-Headers'] = (
-                'Origin, Content-Type, Accept, X-Shopify-Topic, '
-                'X-Shopify-Shop-Domain, X-Shopify-Hmac-Sha256,'
-                'X-Shopify-*-Id')
+                'origin, content-type, accept, x-shopify-topic, '
+                'x-shopify-shop-domain, x-shopify-hmac-sha256, '
+                'x-shopify-*-id, user-agent, referer')
             return response
         elif request.method != 'POST':
             log.debug("Bad method %s" % request.method)
@@ -57,10 +58,9 @@ def webhook(f):
             return HttpResponseBadRequest("Bad domain header")
 
         # Verify the HMAC.
-        if 'metafield' not in topic and not hmac_is_valid(request.body,
-                                                          settings.SHOPIFY_APP_API_SECRET,
-                                                          hmac):
-            # We only have to do that check if we are not using a metafield
+        if not hmac_is_valid(request.body,
+                             settings.SHOPIFY_APP_API_SECRET,
+                             hmac):
             log.debug("Bad HMAC")
             return HttpResponseForbidden("Bad HMAC header")
 

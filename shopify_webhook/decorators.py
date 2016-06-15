@@ -21,19 +21,7 @@ def webhook(f):
     @wraps(f)
     def wrapper(request, *args, **kwargs):
         # Ensure the request is a POST request.
-        if request.method == 'OPTIONS':
-            response = HttpResponse()
-            response['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
-            response['Access-Control-Allow-Origin'] = '*'
-            response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-            response['Access-Control-Max-Age'] = 1000
-            # note that '*' is not valid for Access-Control-Allow-Headers
-            response['Access-Control-Allow-Headers'] = (
-                'origin, content-type, accept, x-shopify-topic, '
-                'x-shopify-shop-domain, x-shopify-hmac-sha256, '
-                'x-shopify-*-id, user-agent, referer')
-            return response
-        elif request.method != 'POST':
+        if request.method != 'POST':
             log.debug("Bad method %s" % request.method)
             return HttpResponseMethodNotAllowed()
 
